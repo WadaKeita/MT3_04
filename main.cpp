@@ -15,7 +15,7 @@ struct Spring {
 
 struct Ball {
 	Vector3 position;		// ボールの位置
-	Vector3 velocity;		// ボールの位置
+	Vector3 velocity;		// ボールの速度
 	Vector3 acceleration;	// ボールの加速度
 	float mass;				// ボールの質量
 	float radius;			// ボールの半径
@@ -44,16 +44,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		0.01f,
 	};
 
+	const Vector3 kGravity{ 0.0f, -9.8f, 0.0f };
+
 	bool start = false;
 
 	Spring spring{};
-	spring.anchor = { 0.0f, 0.0f, 0.0f };
-	spring.naturalLength = 1.0f;
+	spring.anchor = { 0.0f, 1.0f, 0.0f };
+	spring.naturalLength = 0.7f;
 	spring.stiffness = 100.0f;
 	spring.dampingCoefficient = 2.0f;
 
 	Ball ball{};
-	ball.position = { 1.2f, 0.0f, 0.0f };
+	ball.position = { 0.8f, 0.2f, 0.0f };
 	ball.mass = 2.0f;
 	ball.radius = 0.05f;
 	ball.color = BLUE;
@@ -97,11 +99,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				ball.acceleration = force / ball.mass;
 			}
 
+			ball.velocity = ball.velocity + kGravity * deltaTime;
 			ball.velocity = ball.velocity + ball.acceleration * deltaTime;
 			ball.position = ball.position + ball.velocity * deltaTime;
 
 		}
 		sphere.center = ball.position;
+		segment.origin = spring.anchor;
 		segment.diff = ball.position - spring.anchor;
 
 
@@ -127,7 +131,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
 
 
-
 		ImGui::Begin("camera");
 		ImGui::DragFloat3("scale", &camera.scale.x, 0.01f);
 		ImGui::DragFloat3("Translation", &camera.translate.x, 0.01f);
@@ -137,6 +140,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::End();
 
 		ImGui::Begin("control");
+		ImGui::DragFloat3("anchorPoint", &spring.anchor.x, 0.01f);
 
 		if (ImGui::Button("start")) {
 			start = true;
@@ -145,11 +149,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::Button("reset")) {
 			start = false;
 
+			spring.anchor = { 0.0f, 1.0f, 0.0f };
+			ball.position = { 0.8f, 0.2f, 0.0f };
+			ball.velocity = { 0,0,0 };
 			ball.acceleration = { 0,0,0 };
-			ball.position = { 1.2f, 0.0f, 0.0f };
 		}
-
-
 		ImGui::End();
 
 		///
