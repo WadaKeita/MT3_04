@@ -78,6 +78,24 @@ struct OBB {
 	Vector3 size; //!< 座標軸方向の長さの半分。中心から面までの距離
 };
 
+struct Spring {
+	Vector3 anchor;				// 固定された端の位置
+	float naturalLength;		// 自然長
+	float stiffness;			// 剛性,ばね定数k
+	float dampingCoefficient;	// 減衰抵抗
+};
+
+struct Ball {
+	Vector3 position;		// ボールの位置
+	Vector3 velocity;		// ボールの速度
+	Vector3 acceleration;	// ボールの加速度
+	float mass;				// ボールの質量
+	float radius;			// ボールの半径
+	unsigned int color;		// ボールの色
+};
+
+
+
 // ベクトル変換
 Vector3 TransformNormal(const Vector3& v, const Matrix4x4& m);
 

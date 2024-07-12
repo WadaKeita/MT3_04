@@ -6,21 +6,6 @@
 
 const char kWindowTitle[] = "LD2A_02_ワダ_ケイタ";
 
-struct Spring {
-	Vector3 anchor;				// 固定された端の位置
-	float naturalLength;		// 自然長
-	float stiffness;			// 剛性,ばね定数k
-	float dampingCoefficient;	// 減衰抵抗
-};
-
-struct Ball {
-	Vector3 position;		// ボールの位置
-	Vector3 velocity;		// ボールの速度
-	Vector3 acceleration;	// ボールの加速度
-	float mass;				// ボールの質量
-	float radius;			// ボールの半径
-	unsigned int color;		// ボールの色
-};
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -35,40 +20,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
 
+	const float deltaTime = 1.0f / 60.0f;
+
+	bool start = false;
+
 	// カメラ
 	Camera camera{
-		 { 1.0f,1.0f,1.0f },
-		 { 0.0f,1.9f,-6.49f },
-		 { 0.26f,0.0f,0.0f },
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, 1.9f, -6.49f },
+		{ 0.26f, 0.0f, 0.0f },
 		0.05f,
 		0.01f,
 	};
 
-	const Vector3 kGravity{ 0.0f, -9.8f, 0.0f };
-
-	bool start = false;
-
-	Spring spring{};
-	spring.anchor = { 0.0f, 1.0f, 0.0f };
-	spring.naturalLength = 0.7f;
-	spring.stiffness = 100.0f;
-	spring.dampingCoefficient = 2.0f;
-
-	Ball ball{};
-	ball.position = { 0.8f, 0.2f, 0.0f };
-	ball.mass = 2.0f;
-	ball.radius = 0.05f;
-	ball.color = BLUE;
-
-	float deltaTime = 1.0f / 60.0f;
 
 	Sphere sphere{};
-	sphere.center = ball.position;
-	sphere.radius = 0.1f;
+	sphere.center = { 0.0f, 0.0f, 0.0f };
+	sphere.radius = 0.08f;
 
-	Segment segment{};
-	segment.origin = spring.anchor;
-	segment.diff = ball.position - spring.anchor;
+	float rotateRadius = 0.8f;
+	Vector3 rotateCenter = { 0.0f, 0.0f, 0.0f };
+
+	float angularVelocity = 3.14f;
+	float angle = 0.0f;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -86,28 +60,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// カメラ移動操作
 		CameraOperation(camera, keys);
 
+		sphere.center.x = rotateCenter.x + std::cos(angle) * rotateRadius;
+		sphere.center.y = rotateCenter.y + std::sin(angle) * rotateRadius;
+		sphere.center.z = rotateCenter.z;
+
 		if (start) {
-			Vector3 diff = ball.position - spring.anchor;
-			float length = Length(diff);
-			if (length != 0.0f) {
-				Vector3 direction = Normalize(diff);
-				Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
-				Vector3 displacement = length * (ball.position - restPosition);
-				Vector3 restoringForce = -spring.stiffness * displacement;
-				Vector3 dampingForce = -spring.dampingCoefficient * ball.velocity;
-				Vector3 force = restoringForce + dampingForce;
-				ball.acceleration = force / ball.mass;
-			}
-
-			ball.velocity = ball.velocity + kGravity * deltaTime;
-			ball.velocity = ball.velocity + ball.acceleration * deltaTime;
-			ball.position = ball.position + ball.velocity * deltaTime;
-
+			angle += angularVelocity * deltaTime;
 		}
-		sphere.center = ball.position;
-		segment.origin = spring.anchor;
-		segment.diff = ball.position - spring.anchor;
-
 
 		Matrix4x4 cameraMatrix = MakeAffineMatrix(camera.scale, camera.rotate, camera.translate);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -127,8 +86,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// グリッド描画
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		DrawSegment(segment, viewProjectionMatrix, viewportMatrix, WHITE);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
 
 
 		ImGui::Begin("camera");
@@ -140,7 +98,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::End();
 
 		ImGui::Begin("control");
-		ImGui::DragFloat3("anchorPoint", &spring.anchor.x, 0.01f);
 
 		if (ImGui::Button("start")) {
 			start = true;
@@ -148,11 +105,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::SameLine();
 		if (ImGui::Button("reset")) {
 			start = false;
+			angle = 0.0f;
 
-			spring.anchor = { 0.0f, 1.0f, 0.0f };
-			ball.position = { 0.8f, 0.2f, 0.0f };
-			ball.velocity = { 0,0,0 };
-			ball.acceleration = { 0,0,0 };
 		}
 		ImGui::End();
 
