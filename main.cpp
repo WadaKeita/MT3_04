@@ -6,6 +6,14 @@
 
 const char kWindowTitle[] = "LD2A_02_ワダ_ケイタ";
 
+struct Pendulum {
+	Vector3 anchor;	// アンカーポイント。固定された端の位置
+	float length;	// 紐の長さ
+	float angle;	// 現在の角度
+	float angularVelocity;	// 角速度ω
+	float angularAcceleration;	// 角加速度
+};
+
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -33,16 +41,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		0.01f,
 	};
 
+	Pendulum pendulum;
+	pendulum.anchor = { 0.0f,1.0f,0.0f };
+	pendulum.length = 0.8f;
+	pendulum.angle = 0.7f;
+	pendulum.angularVelocity = 0.0f;
+	pendulum.angularAcceleration = 0.0f;
 
 	Sphere sphere{};
 	sphere.center = { 0.0f, 0.0f, 0.0f };
 	sphere.radius = 0.08f;
 
-	float rotateRadius = 0.8f;
-	Vector3 rotateCenter = { 0.0f, 0.0f, 0.0f };
-
-	float angularVelocity = 3.14f;
-	float angle = 0.0f;
+	Segment segment{};
+	segment.origin = pendulum.anchor;
+	segment.diff = sphere.center - pendulum.anchor;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -60,13 +72,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// カメラ移動操作
 		CameraOperation(camera, keys);
 
-		sphere.center.x = rotateCenter.x + std::cos(angle) * rotateRadius;
-		sphere.center.y = rotateCenter.y + std::sin(angle) * rotateRadius;
-		sphere.center.z = rotateCenter.z;
 
 		if (start) {
-			angle += angularVelocity * deltaTime;
+			pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
+			pendulum.angularVelocity += pendulum.angularAcceleration * deltaTime;
+			pendulum.angle += pendulum.angularVelocity * deltaTime;
 		}
+		sphere.center.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
+		sphere.center.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
+		sphere.center.z = pendulum.anchor.z;
+		
+		segment.diff = sphere.center - pendulum.anchor;
 
 		Matrix4x4 cameraMatrix = MakeAffineMatrix(camera.scale, camera.rotate, camera.translate);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -85,6 +101,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		// グリッド描画
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
+
+		DrawSegment(segment, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
 
@@ -105,7 +123,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::SameLine();
 		if (ImGui::Button("reset")) {
 			start = false;
-			angle = 0.0f;
 
 		}
 		ImGui::End();
