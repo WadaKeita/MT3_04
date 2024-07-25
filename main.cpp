@@ -123,7 +123,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::SameLine();
 		if (ImGui::Button("reset")) {
 			start = false;
-
+			pendulum.anchor = { 0.0f,1.0f,0.0f };
+			pendulum.length = 0.8f;
+			pendulum.angle = 0.7f;
+			pendulum.angularVelocity = 0.0f;
+			pendulum.angularAcceleration = 0.0f;
 		}
 		ImGui::End();
 
