@@ -6,12 +6,12 @@
 
 const char kWindowTitle[] = "LD2A_02_ワダ_ケイタ";
 
-struct Pendulum {
+struct ConicalPendulum {
 	Vector3 anchor;	// アンカーポイント。固定された端の位置
 	float length;	// 紐の長さ
+	float halfApexAngle;	// 円錐の頂角の半分
 	float angle;	// 現在の角度
 	float angularVelocity;	// 角速度ω
-	float angularAcceleration;	// 角加速度
 };
 
 
@@ -41,20 +41,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		0.01f,
 	};
 
-	Pendulum pendulum;
-	pendulum.anchor = { 0.0f,1.0f,0.0f };
-	pendulum.length = 0.8f;
-	pendulum.angle = 0.7f;
-	pendulum.angularVelocity = 0.0f;
-	pendulum.angularAcceleration = 0.0f;
+	ConicalPendulum conicalPendulum;
+	conicalPendulum.anchor = { 0.0f,1.0f,0.0f };
+	conicalPendulum.length = 0.8f;
+	conicalPendulum.halfApexAngle = 0.7f;
+	conicalPendulum.angle = 0.7f;
+	conicalPendulum.angularVelocity = 0.0f;
+
 
 	Sphere sphere{};
 	sphere.center = { 0.0f, 0.0f, 0.0f };
 	sphere.radius = 0.08f;
 
 	Segment segment{};
-	segment.origin = pendulum.anchor;
-	segment.diff = sphere.center - pendulum.anchor;
+	segment.origin = conicalPendulum.anchor;
+	segment.diff = sphere.center - conicalPendulum.anchor;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -74,15 +75,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 		if (start) {
-			pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
-			pendulum.angularVelocity += pendulum.angularAcceleration * deltaTime;
-			pendulum.angle += pendulum.angularVelocity * deltaTime;
+			conicalPendulum.angularVelocity = std::sqrtf(9.8f / (conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle)));
+			conicalPendulum.angle += conicalPendulum.angularVelocity * deltaTime;
 		}
-		sphere.center.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
-		sphere.center.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
-		sphere.center.z = pendulum.anchor.z;
-		
-		segment.diff = sphere.center - pendulum.anchor;
+
+		float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+		float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+
+		sphere.center.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
+		sphere.center.y = conicalPendulum.anchor.y - height;
+		sphere.center.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
+
+
+		segment.diff = sphere.center - conicalPendulum.anchor;
 
 		Matrix4x4 cameraMatrix = MakeAffineMatrix(camera.scale, camera.rotate, camera.translate);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -123,11 +128,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::SameLine();
 		if (ImGui::Button("reset")) {
 			start = false;
-			pendulum.anchor = { 0.0f,1.0f,0.0f };
-			pendulum.length = 0.8f;
-			pendulum.angle = 0.7f;
-			pendulum.angularVelocity = 0.0f;
-			pendulum.angularAcceleration = 0.0f;
+			conicalPendulum.anchor = { 0.0f,1.0f,0.0f };
+			conicalPendulum.length = 0.8f;
+			conicalPendulum.halfApexAngle = 0.7f;
+			conicalPendulum.angle = 0.7f;
+			conicalPendulum.angularVelocity = 0.0f;
 		}
 		ImGui::End();
 
