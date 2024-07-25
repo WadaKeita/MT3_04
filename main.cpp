@@ -6,13 +6,12 @@
 
 const char kWindowTitle[] = "LD2A_02_ワダ_ケイタ";
 
-struct ConicalPendulum {
-	Vector3 anchor;	// アンカーポイント。固定された端の位置
-	float length;	// 紐の長さ
-	float halfApexAngle;	// 円錐の頂角の半分
-	float angle;	// 現在の角度
-	float angularVelocity;	// 角速度ω
-};
+// 反射ベクトルを求める
+Vector3 Reflect(const Vector3& input, const Vector3& normal) {
+	Vector3 result;
+	result = input - 2 * (Dot(input, normal)) * normal;
+	return result;
+}
 
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -41,21 +40,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		0.01f,
 	};
 
-	ConicalPendulum conicalPendulum;
-	conicalPendulum.anchor = { 0.0f,1.0f,0.0f };
-	conicalPendulum.length = 0.8f;
-	conicalPendulum.halfApexAngle = 0.7f;
-	conicalPendulum.angle = 0.7f;
-	conicalPendulum.angularVelocity = 0.0f;
+	// 地面
+	Plane plane;
+	plane.normal = Normalize({ -0.2f,0.9f,-0.3f });
+	plane.distance = 0.0f;
 
+	// 球
+	Ball ball{};
+	ball.position = { 0.8f,1.2f,0.3f };
+	ball.mass = 2.0f;
+	ball.radius = 0.05f;
+	ball.color = WHITE;
 
-	Sphere sphere{};
-	sphere.center = { 0.0f, 0.0f, 0.0f };
-	sphere.radius = 0.08f;
-
-	Segment segment{};
-	segment.origin = conicalPendulum.anchor;
-	segment.diff = sphere.center - conicalPendulum.anchor;
+	ball.acceleration = { 0.0f,-9.8f,0.0f };
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -75,19 +72,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 		if (start) {
-			conicalPendulum.angularVelocity = std::sqrtf(9.8f / (conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle)));
-			conicalPendulum.angle += conicalPendulum.angularVelocity * deltaTime;
+			ball.velocity = ball.velocity + ball.acceleration * deltaTime;
+			ball.position = ball.position + ball.velocity * deltaTime;
+			if (IsCollision(Sphere{ ball.position,ball.radius }, plane)) {
+				Vector3 reflected = Reflect(ball.velocity, plane.normal);
+				Vector3 projectToNormal = Project(reflected, plane.normal);
+				Vector3 movingDirection = reflected - projectToNormal;
+				ball.velocity = projectToNormal * 0.6f + movingDirection;
+			}
+
 		}
-
-		float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-		float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-
-		sphere.center.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
-		sphere.center.y = conicalPendulum.anchor.y - height;
-		sphere.center.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
-
-
-		segment.diff = sphere.center - conicalPendulum.anchor;
 
 		Matrix4x4 cameraMatrix = MakeAffineMatrix(camera.scale, camera.rotate, camera.translate);
 		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -107,9 +101,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// グリッド描画
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		DrawSegment(segment, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
 
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawSphere(ball, viewProjectionMatrix, viewportMatrix, WHITE);
 
 
 		ImGui::Begin("camera");
@@ -128,11 +122,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::SameLine();
 		if (ImGui::Button("reset")) {
 			start = false;
-			conicalPendulum.anchor = { 0.0f,1.0f,0.0f };
-			conicalPendulum.length = 0.8f;
-			conicalPendulum.halfApexAngle = 0.7f;
-			conicalPendulum.angle = 0.7f;
-			conicalPendulum.angularVelocity = 0.0f;
+			ball.velocity = { 0.0f, 0.0f, 0.0f };
+			ball.position = { 0.8f, 1.2f, 0.3f };
 		}
 		ImGui::End();
 

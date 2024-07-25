@@ -537,6 +537,44 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 	}
 }
 
+void DrawSphere(const Ball& ball, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+
+
+	Matrix4x4 worldMatrix = MakeAffineMatrix({ 1,1,1 }, { 0,0,0 }, ball.position);
+	Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
+
+	const uint32_t kSubdivision = 10; // 分割数
+	const float kLonEvery = (2.0f * (float)M_PI) / kSubdivision; // 経度分割1つ分の角度
+	const float kLatEvery = (float)M_PI / kSubdivision; // 緯度分割1つ分の角度
+
+	// 緯度の方向に分割 -π/2 ～ π/2
+	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+		float lat = -(float)M_PI / 2.0f + kLatEvery * latIndex; // 現在の緯度
+
+		// 緯度方向に分割 0 ～ 2π
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+			float lon = lonIndex * kLonEvery;
+			// world座標系でのa,b,cを求める
+			Vector3 a, b, c;
+
+			a = { ball.radius * cosf(lat) * cosf(lon), ball.radius * sinf(lat), ball.radius * cosf(lat) * sin(lon) };
+			b = { ball.radius * cosf(lat + kLatEvery) * cosf(lon), ball.radius * sinf(lat + kLatEvery), ball.radius * cosf(lat + kLatEvery) * sin(lon) };
+			c = { ball.radius * cosf(lat) * cosf(lon + kLonEvery), ball.radius * sinf(lat), ball.radius * cosf(lat) * sin(lon + kLonEvery) };
+
+			// a,b,cをScreen座標系まで変換
+			a = Transform(Transform(a, worldViewProjectionMatrix), viewportMatrix);
+			b = Transform(Transform(b, worldViewProjectionMatrix), viewportMatrix);
+			c = Transform(Transform(c, worldViewProjectionMatrix), viewportMatrix);
+
+
+			// ab,bcで線を引く
+			Novice::DrawLine((int)a.x, (int)a.y, (int)b.x, (int)b.y, color);
+			Novice::DrawLine((int)a.x, (int)a.y, (int)c.x, (int)c.y, color);
+		}
+	}
+}
+
+
 // 平面描画
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	Vector3 center = Multiply(plane.distance, plane.normal);

@@ -102,6 +102,15 @@ struct Pendulum {
 	float angularAcceleration;	// 角加速度
 };
 
+struct ConicalPendulum {
+	Vector3 anchor;	// アンカーポイント。固定された端の位置
+	float length;	// 紐の長さ
+	float halfApexAngle;	// 円錐の頂角の半分
+	float angle;	// 現在の角度
+	float angularVelocity;	// 角速度ω
+};
+
+
 // ベクトル変換
 Vector3 TransformNormal(const Vector3& v, const Matrix4x4& m);
 
@@ -225,6 +234,7 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 /// 球描画
 /// </summary>
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+void DrawSphere(const Ball& ball, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 /// <summary>
 /// 平面描画
